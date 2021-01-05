@@ -18,6 +18,7 @@ import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
+import org.opencv.core.KeyPoint;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfKeyPoint;
 import org.opencv.core.Scalar;
@@ -127,8 +128,8 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
     public Mat onCameraFrame(CvCameraViewFrame frame) {
         // get current camera frame as OpenCV Mat object
         Mat frame1 = frame.rgba();
-//        Mat Org = new Mat();
-//        frame1.copyTo(Org);
+        Mat Org = new Mat();
+        frame1.copyTo(Org);
 //        final Mat first = new Mat();
 
 
@@ -157,21 +158,21 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
 //        }
 
         //
-//        if(!kpts1.empty()) {
-//            KeyPoint[] keys = kpts1.toArray();
-//            for(int x = 0; x<kpts1.rows();x++){
-//                System.out.println(String.format("Checking Mat = " + keys[x].pt.x));
-//                keys[x].pt.x = keys[x].pt.x *scale;
-//                keys[x].pt.y = keys[x].pt.y *scale;
-//                keys[x].angle = keys[x].angle;
-////                keys[x].size = keys[x].size*scale;
-//
-//
-//
-//            }
-//
-//            kpts1.fromArray(keys);
-//        }
+        if(!kpts1.empty()) {
+            KeyPoint[] keys = kpts1.toArray();
+            for(int x = 0; x<kpts1.rows();x++){
+                System.out.println(String.format("Checking Mat = " + keys[x].pt.x));
+                keys[x].pt.x = keys[x].pt.x *scale;
+                keys[x].pt.y = keys[x].pt.y *scale;
+                keys[x].angle = keys[x].angle;
+//                keys[x].size = keys[x].size*scale;
+
+
+
+            }
+
+            kpts1.fromArray(keys);
+        }
 
 
 //        Mat desc2 = new Mat();
@@ -194,8 +195,8 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
 //        multiply(kpts1.col(0),Scalar.all(scale),kpts1.col(0));
 //        multiply(kpts1.col(1),Scalar.all(scale),kpts1.col(1));
 //        Features2d.drawKeypoints(frame.rgba(), kpts1, out, color, flags);
-//        Features2d.drawKeypoints(Org, kpts1, Org, color, flags);
-        Features2d.drawKeypoints(frame1, kpts1, frame1, color, flags);
+        Features2d.drawKeypoints(Org, kpts1, Org, color, flags);
+//        Features2d.drawKeypoints(frame1, kpts1, frame1, color, flags);
 
 //        // Use brute-force matcher to find 2-nn matches
 //        DescriptorMatcher matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
@@ -236,9 +237,10 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
 //        adaptiveThresholdFromJNI(mat.getNativeObjAddr());
 
         // return processed frame for live preview
-        resize(frame1, frame1, scaleSize2 , 0, 0, Imgproc.INTER_CUBIC);
+//        resize(frame1, frame1, scaleSize2 , 0, 0, Imgproc.INTER_CUBIC);
 
-        return frame1;
+//        return frame1;
+        return Org;
 
 //        if(firstframe)
 //            return frame1;
