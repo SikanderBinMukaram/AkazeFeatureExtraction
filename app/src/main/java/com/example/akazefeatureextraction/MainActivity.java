@@ -5,11 +5,14 @@ import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
 import android.view.SurfaceView;
 import android.view.WindowManager;
 import android.widget.Toast;
 
 import androidx.core.app.ActivityCompat;
+import androidx.core.view.GestureDetectorCompat;
 
 import org.jetbrains.annotations.NotNull;
 import org.opencv.android.BaseLoaderCallback;
@@ -27,12 +30,28 @@ import org.opencv.features2d.AKAZE;
 import org.opencv.features2d.Features2d;
 import org.opencv.imgproc.Imgproc;
 
+import java.io.FileReader;
+
 import static org.opencv.imgproc.Imgproc.resize;
 
 public class MainActivity extends Activity implements CvCameraViewListener2 {
     private static final String TAG = "MainActivity";
     private static final int CAMERA_PERMISSION_REQUEST = 1;
-    public boolean firstframe = true;
+
+
+    public boolean startMatching = false;
+    private GestureDetectorCompat mDetector;
+
+    //Initialization
+
+    public Mat Currframe, Firstframe;
+    public AKAZE akaze;
+    public Mat desc;
+    public MatOfKeyPoint kpts;
+    public Scalar color;
+
+    public int scale = 8;
+    public Size scaleSize;
 
     private CameraBridgeViewBase mOpenCvCameraView;
 
@@ -66,6 +85,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
         );
 
         setContentView(R.layout.activity_main);
+        mDetector = new GestureDetectorCompat(this, new MyGestureListener());
 
         mOpenCvCameraView = findViewById(R.id.main_surface);
 
@@ -75,6 +95,30 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
 
     }
 
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event){
+        this.mDetector.onTouchEvent(event);
+        return super.onTouchEvent(event);
+    }
+
+    class MyGestureListener extends GestureDetector.SimpleOnGestureListener {
+        private static final String DEBUG_TAG = "Gestures";
+
+        @Override
+        public boolean onDown(MotionEvent event) {
+            Log.d(DEBUG_TAG,"onDown: " + event.toString());
+            return true;
+        }
+
+        @Override
+        public boolean onDoubleTap(MotionEvent event) {
+            Log.d(DEBUG_TAG, "onDoubleTap: " + event.toString());
+            startMatching = true;
+            return true;
+        }
+
+    }
     @Override
     public void onRequestPermissionsResult(int requestCode, @NotNull String[] permissions, @NotNull int[] grantResults) {
         if (requestCode == CAMERA_PERMISSION_REQUEST) {
@@ -114,10 +158,21 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
         super.onDestroy();
         if (mOpenCvCameraView != null)
             mOpenCvCameraView.disableView();
+        Currframe.release();
+        Firstframe.release();
+        desc.release();
+        kpts.release();
+
     }
 
     @Override
     public void onCameraViewStarted(int width, int height) {
+        Currframe = new Mat();
+        Firstframe = new Mat();
+        desc = new Mat();
+        kpts = new MatOfKeyPoint();
+        akaze = AKAZE.create();
+
     }
 
     @Override
@@ -127,125 +182,52 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
     @Override
     public Mat onCameraFrame(CvCameraViewFrame frame) {
         // get current camera frame as OpenCV Mat object
-        Mat frame1 = frame.rgba();
-        Mat Org = new Mat();
-        frame1.copyTo(Org);
-//        final Mat first = new Mat();
+        Currframe = frame.rgba();
+        Firstframe = new Mat();
+        Currframe.copyTo(Firstframe);
 
+        scaleSize = new Size(Currframe.width()/scale,Currframe.height()/scale);
+        resize(Currframe, Currframe, scaleSize , 0, 0, Imgproc.INTER_AREA);
 
-
-//        final Mat frame2 = new Mat();
-//        final Mat frame1 = new Mat();
-//
-
-        //for only first frame
-        Mat desc1 = new Mat();
-        MatOfKeyPoint kpts1 = new MatOfKeyPoint();
-
-        int scale = 4;
-        Size scaleSize = new Size(frame1.width()/scale,frame1.height()/scale);
-
-        resize(frame1, frame1, scaleSize , 0, 0, Imgproc.INTER_AREA);
-        Size scaleSize2 = new Size(frame1.width()*scale,frame1.height()*scale);
         //  Detect keypoints and compute descriptors using AKAZE
-        AKAZE akaze = AKAZE.create();
-        akaze.detectAndCompute(frame1, new Mat(), kpts1, desc1);
+        akaze.detectAndCompute(Currframe, new Mat(), kpts, desc);
 
+
+//        for scaling keypoints to size
+        // comment below if you don't want to scale keypoints and uncomment for Currframe feature drawing
+//        if(!kpts.empty()) {
+//            KeyPoint[] keys = kpts.toArray();
+//            for(int x = 0; x<kpts.rows();x++){
+////                System.out.println(String.format("Checking Mat = " + keys[x].pt.x));
+//                keys[x].pt.x = keys[x].pt.x *scale;
+//                keys[x].pt.y = keys[x].pt.y *scale;
 //
-//        if(firstframe && kpts1.rows()>10) {
-//            frame1.copyTo(first);
-//            firstframe = false;
-//        }
-
-        //
-        if(!kpts1.empty()) {
-            KeyPoint[] keys = kpts1.toArray();
-            for(int x = 0; x<kpts1.rows();x++){
-                System.out.println(String.format("Checking Mat = " + keys[x].pt.x));
-                keys[x].pt.x = keys[x].pt.x *scale;
-                keys[x].pt.y = keys[x].pt.y *scale;
-                keys[x].angle = keys[x].angle;
-//                keys[x].size = keys[x].size*scale;
-
-
-
-            }
-
-            kpts1.fromArray(keys);
-        }
-
-
-//        Mat desc2 = new Mat();
-//        MatOfKeyPoint kpts2 = new MatOfKeyPoint();
-//
-//        if(i==0){
-//
-//            akaze.detectAndCompute(frame1, new Mat(), kpts1, desc1);
-//            frame.copyTo(frame1);
-//            akaze.detectAndCompute(frame2, new Mat(), kpts2, desc2);
-//
-//        }
-//        else{
-//            akaze.detectAndCompute(frame2, new Mat(), kpts2, desc2);
-//        }
-
-//  Drawing feature points
-        Scalar color = new Scalar(255, 0, 0); // BGR
-        int flags = Features2d.DrawMatchesFlags_DEFAULT; // For each keypoint, the circle around keypoint with keypoint size and orientation will be drawn.
-//        multiply(kpts1.col(0),Scalar.all(scale),kpts1.col(0));
-//        multiply(kpts1.col(1),Scalar.all(scale),kpts1.col(1));
-//        Features2d.drawKeypoints(frame.rgba(), kpts1, out, color, flags);
-        Features2d.drawKeypoints(Org, kpts1, Org, color, flags);
-//        Features2d.drawKeypoints(frame1, kpts1, frame1, color, flags);
-
-//        // Use brute-force matcher to find 2-nn matches
-//        DescriptorMatcher matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
-//        List<MatOfDMatch> KnnMatches = new ArrayList<>();
-//        matcher.knnMatch(desc1,desc2,KnnMatches,2);
-//
-//        //Use 2-nn matches and ratio criterion to find correct keypoint matches
-//        float MatchRatiothreshold = 0.8f;
-//        List<KeyPoint> listOfMatched1 = new ArrayList<>();
-//        List<KeyPoint> listOfMatched2 = new ArrayList<>();
-//        List<KeyPoint> listOfKeypoints1 = kpts1.toList();
-//        List<KeyPoint> listOfKeypoints2 = kpts2.toList();
-//        List<DMatch> listOfGoodMatches = new ArrayList<>();
-//
-//        for(int j=0; j<KnnMatches.size();j++){
-//            DMatch[] matches = KnnMatches.get(j).toArray();
-//            float dist1 = matches[0].distance;
-//            float dist2 = matches[1].distance;
-//            if(dist1< MatchRatiothreshold*dist2){
-//                listOfGoodMatches.add(new DMatch(listOfMatched1.size(), listOfMatched2.size(), 0));
-//                listOfMatched1.add(listOfKeypoints1.get(matches[0].queryIdx));
-//                listOfMatched2.add(listOfKeypoints2.get(matches[0].trainIdx));
 //
 //            }
 //
+//            kpts.fromArray(keys);
 //        }
 
-//
-//        final Mat res = new Mat();
-//        MatOfKeyPoint inliers1 = new MatOfKeyPoint(listOfMatched1.toArray(new KeyPoint[listOfMatched1.size()]));
-//        MatOfKeyPoint inliers2 = new MatOfKeyPoint(listOfMatched2.toArray(new KeyPoint[listOfMatched2.size()]));
-//        MatOfDMatch goodMatches = new MatOfDMatch(listOfGoodMatches.toArray(new DMatch[listOfGoodMatches.size()]));
-//
-//        Features2d.drawMatches(frame1, inliers1, frame, inliers2,goodMatches, res);
-////                               frame.copyTo(res);
 
-        // native call to process current camera frame
-//        adaptiveThresholdFromJNI(mat.getNativeObjAddr());
+//  Drawing feature points
+        if(startMatching) {
+            color = new Scalar(0, 255, 0); // BGR
+        }
+        else{
+            color = new Scalar(255, 0, 0); // BGR
+        }
+        int flags = Features2d.DrawMatchesFlags_DEFAULT; // For each keypoint, the circle around keypoint with keypoint size and orientation will be drawn.
 
-        // return processed frame for live preview
-//        resize(frame1, frame1, scaleSize2 , 0, 0, Imgproc.INTER_CUBIC);
+        //uncomment this if not scaling keypoints
+        Features2d.drawKeypoints(Currframe, kpts, Currframe, color, flags);
+        scaleSize = new Size(Currframe.width()*scale,Currframe.height()*scale);
+        resize(Currframe, Currframe, scaleSize , 0, 0, Imgproc.INTER_CUBIC);
+        return Currframe;
 
-//        return frame1;
-        return Org;
+        //uncomment this if you scaling keypoints
+//        Features2d.drawKeypoints(Firstframe, kpts, Firstframe, color, flags);
+//        return Firstframe;
 
-//        if(firstframe)
-//            return frame1;
-//        else
-//            return frame1;
     }
 
 }
