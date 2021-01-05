@@ -1,0 +1,2 @@
+include ':app', 'opencv450'
+rootProject.name='AkazeFeatureExtraction'
