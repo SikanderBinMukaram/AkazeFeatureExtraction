@@ -27,6 +27,10 @@ What it has now is:
 * Live feed from camera using opencv
 * Feature detection on each frame 
 * Visualising the keypoints in each frame.
+* Double tap to select keyframe and start matching.
+* Visualising the keypoints:
+  * Green color shows the matched points, 
+  * Blue color shows the current frame keypoints.
 
 
 <!-- GETTING STARTED -->
