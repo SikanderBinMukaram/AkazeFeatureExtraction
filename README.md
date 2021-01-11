@@ -22,8 +22,8 @@ Akaze Feature Extraction from live camera feed on android phone.
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-I wanted to implement the akaze feature extraction on android using opencv for which I couldn't find any good example online. This one I made using Opencv and help from some blogs as mentioned in Acknowledgements.
-What it has now is:
+I wanted to implement the akaze feature extraction on android using opencv for which I couldn't find any good example online. This one I made using Opencv and with help from some blogs as mentioned in Acknowledgements.
+For now the app has following features:
 * Live feed from camera using opencv
 * Feature detection on each frame 
 * Visualising the keypoints in each frame.
